@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Agentic RAG Platform – Separation of Concerns</title>
+
+  <!-- Mermaid CDN (stable, pinned) -->
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+
+  <style>
+    body {
+      margin: 0;
+      padding: 24px;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      background: #0b1020;
+      color: #e8eeff;
+    }
+
+    h1 {
+      margin-bottom: 8px;
+      font-size: 22px;
+    }
+
+    p {
+      margin-bottom: 16px;
+      color: #9fb0d0;
+      max-width: 1100px;
+    }
+
+    .diagram-container {
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 14px;
+      padding: 16px;
+      background: rgba(255,255,255,0.02);
+      overflow-x: auto;
+    }
+  </style>
+</head>
+
+<body>
+
+<h1>Agentic RAG Platform — Separation of Concerns</h1>
+
+<p>
+UI/API (request surface), Orchestrator (control plane), Agents (intent & reasoning),
+Retrieval/Tools (data plane), with Governance and Observability as safety rails.
+</p>
+
+<div class="diagram-container">
+  <div class="mermaid">
+flowchart LR
+
+%% =======================
+%% API / UI LAYER
+%% =======================
+subgraph API["API / UI Layer (Request Surface)"]
+  UI[Web UI / Chat UI]
+  API1[FastAPI / Gateway]
+  UI --> API1
+end
+
+%% =======================
+%% ORCHESTRATOR
+%% =======================
+subgraph ORCH["Orchestrator (Control Plane)"]
+  ROUTER[Router / Policy Engine]
+  STATE[State Store]
+  ROUTER <--> STATE
+end
+
+%% =======================
+%% AGENTS
+%% =======================
+subgraph AG["Agents (Intent + Reasoning)"]
+  PLAN[Planner Agent]
+  SPEC[Specialized Agents<br/>(Policy · DS · Ops · Risk)]
+  VALID[Validator / Critic]
+  PLAN --> SPEC --> VALID
+end
+
+%% =======================
+%% RAG DATA PLANE
+%% =======================
+subgraph RAG["Retrieval (RAG Data Plane)"]
+  EMB[Embed Query]
+  VEC[Vector Search]
+  CHUNK[Top-K Chunks]
+  AUG[Prompt Augmentation]
+  EMB --> VEC --> CHUNK --> AUG
+end
+
+%% =======================
+%% TOOLS / ACTIONS
+%% =======================
+subgraph TOOLS["Tools / Actions (Execution)"]
+  DBT[DB Tool<br/>(SQL / NoSQL / Warehouse)]
+  FILE[Doc Tool<br/>(PDF / DOC / HTML)]
+  WEB[Web Search Tool]
+  ACT[Actions<br/>(APIs · Tickets · Emails)]
+end
+
+%% =======================
+%% DATA STORES
+%% =======================
+subgraph DATA["Data Stores"]
+  VDB[(Vector DB)]
+  POL[(Policy Docs)]
+  DWH[(Warehouse / Lake)]
+  LOGS[(Logs / Traces)]
+end
+
+%% =======================
+%% GOVERNANCE
+%% =======================
+subgraph GOV["Governance (Safety Rails)"]
+  AUTH[AuthN / AuthZ]
+  PII[PII & Secrets Filter]
+  INJ[Prompt Injection Guard]
+  PROV[Provenance / Citation Policy]
+end
+
+%% =======================
+%% OBSERVABILITY
+%% =======================
+subgraph OBS["Observability"]
+  MET[Metrics]
+  TRC[Traces]
+  EVAL[Offline Eval / Regression Tests]
+end
+
+%% =======================
+%% DS WORKLOAD
+%% =======================
+subgraph DSX["Data Science Project (Workload)"]
+  DSREQ[Problem Statement / Hypothesis]
+  DSPIP[EDA → Features → Model → Eval]
+  DSPKG[Packaging<br/>(Batch / Realtime)]
+end
+
+%% =======================
+%% CROSS-LINKS
+%% =======================
+API1 --> ROUTER
+ROUTER --> PLAN
+VALID --> ROUTER
+
+SPEC --> EMB
+AUG --> SPEC
+
+VEC <--> VDB
+CHUNK --> POL
+
+SPEC --> DBT
+SPEC --> FILE
+SPEC --> WEB
+VALID --> ACT
+
+DBT <--> DWH
+FILE <--> POL
+ACT --> DWH
+
+API1 --> MET
+ROUTER --> TRC
+VALID --> TRC
+ACT --> TRC
+TRC --> LOGS
+
+API1 --> AUTH
+SPEC --> PII
+SPEC --> INJ
+VALID --> PROV
+
+PLAN --> DSREQ
+DSREQ --> DSPIP
+DSPIP --> DSPKG
+DSPKG --> ACT
+  </div>
+</div>
+
+<script>
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: "dark"
+  });
+</script>
+
+</body>
+</html>

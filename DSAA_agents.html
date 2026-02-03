@@ -1,0 +1,583 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Agentic RAG + Data Science Project Stack (Separation of Concerns)</title>
+
+  <!-- Mermaid (renders diagrams in-browser; works great on GitHub Pages) -->
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+
+  <style>
+    :root{
+      --bg:#0b1020; --panel:#101a33; --muted:#9fb0d0; --text:#e8eeff; --accent:#7aa2ff;
+      --border:rgba(255,255,255,.08); --chip:rgba(122,162,255,.15);
+      --ok:#71e2a8; --warn:#ffd36f; --bad:#ff7a8a;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
+      background: radial-gradient(1200px 700px at 20% 0%, rgba(122,162,255,.20), transparent 55%),
+                  radial-gradient(900px 600px at 100% 10%, rgba(113,226,168,.14), transparent 60%),
+                  var(--bg);
+      color:var(--text);
+    }
+    header{
+      padding:28px 18px 12px;
+      max-width:1200px; margin:0 auto;
+    }
+    h1{margin:0 0 8px; font-size:22px; letter-spacing:.2px}
+    p{margin:0 0 10px; color:var(--muted); line-height:1.5}
+    .wrap{max-width:1200px; margin:0 auto; padding:0 18px 28px;}
+    .grid{
+      display:grid; gap:14px;
+      grid-template-columns: 340px 1fr;
+    }
+    @media (max-width: 980px){ .grid{grid-template-columns:1fr;} }
+
+    .card{
+      background: linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.01));
+      border:1px solid var(--border);
+      border-radius:16px;
+      box-shadow: 0 10px 25px rgba(0,0,0,.25);
+      overflow:hidden;
+    }
+    .card h2{
+      margin:0; padding:14px 14px 10px;
+      font-size:14px; letter-spacing:.6px; text-transform:uppercase;
+      border-bottom:1px solid var(--border);
+      background: rgba(255,255,255,.02);
+    }
+    .card .body{padding:14px;}
+    .chips{display:flex; flex-wrap:wrap; gap:8px; margin-top:10px;}
+    .chip{
+      padding:6px 10px; border-radius:999px; background:var(--chip); border:1px solid var(--border);
+      color:var(--text); font-size:12px; cursor:pointer; user-select:none;
+    }
+    .chip input{vertical-align:middle; margin-right:6px;}
+    .note{font-size:12px; color:var(--muted); line-height:1.45;}
+    .btnrow{display:flex; gap:10px; flex-wrap:wrap; margin-top:12px;}
+    button{
+      background: rgba(122,162,255,.18);
+      border:1px solid var(--border);
+      color:var(--text);
+      padding:9px 12px;
+      border-radius:12px;
+      cursor:pointer;
+      font-size:12px;
+    }
+    button:hover{background: rgba(122,162,255,.26);}
+    .kpi{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:12px;}
+    .kpi .box{
+      border:1px solid var(--border); border-radius:14px; padding:10px;
+      background: rgba(255,255,255,.02);
+    }
+    .kpi .label{font-size:11px; color:var(--muted); margin-bottom:6px;}
+    .kpi .value{font-size:12px; line-height:1.4;}
+    .pill{
+      display:inline-block; padding:3px 8px; border-radius:999px; font-size:11px;
+      border:1px solid var(--border); margin-left:6px;
+    }
+    .ok{background: rgba(113,226,168,.14); color: var(--ok);}
+    .warn{background: rgba(255,211,111,.14); color: var(--warn);}
+    .bad{background: rgba(255,122,138,.14); color: var(--bad);}
+
+    .tabs{display:flex; gap:8px; padding:12px 12px 0;}
+    .tab{
+      padding:8px 10px; border-radius:12px; border:1px solid var(--border);
+      background: rgba(255,255,255,.02); cursor:pointer; font-size:12px; color:var(--muted);
+    }
+    .tab.active{background: rgba(122,162,255,.18); color:var(--text);}
+    .panel{padding:12px;}
+    .panel.hidden{display:none;}
+
+    /* Mermaid container */
+    .diagram{
+      padding:12px;
+      overflow:auto;
+    }
+    .diagram .mermaid{
+      background: rgba(255,255,255,.015);
+      border:1px solid var(--border);
+      border-radius:14px;
+      padding:12px;
+      min-width: 880px; /* keeps layout stable; scrolls on small screens */
+    }
+    footer{
+      max-width:1200px; margin:0 auto; padding:0 18px 26px; color:var(--muted);
+      font-size:12px; line-height:1.55;
+    }
+    code{font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;}
+    .small{font-size:12px; color:var(--muted);}
+  </style>
+</head>
+
+<body>
+  <header>
+    <h1>Agentic RAG + Data Science Project Stack — Separation of Concerns</h1>
+    <p>
+      A single-page, GitHub Pages–friendly diagram deck to design: agents, sub-agents, specialized agents, and an end-to-end data science build pipeline.
+      The “control plane” is the orchestrator; the “data plane” is retrieval/tools; governance + observability keep it enterprise-safe.
+    </p>
+  </header>
+
+  <div class="wrap">
+    <div class="grid">
+      <!-- LEFT: Controls / Legend -->
+      <div class="card">
+        <h2>Controls</h2>
+        <div class="body">
+          <div class="note">
+            Use filters to emphasize a slice of the system (e.g., governance-heavy builds, DS lifecycle depth, or pure agent orchestration).
+            This page is static HTML but “dynamic” in-browser via JS + Mermaid rendering — perfect for GitHub Pages.
+          </div>
+
+          <div class="chips" id="filters">
+            <label class="chip"><input type="checkbox" data-tag="api" checked />API / UI</label>
+            <label class="chip"><input type="checkbox" data-tag="orchestrator" checked />Orchestrator</label>
+            <label class="chip"><input type="checkbox" data-tag="agents" checked />Agents</label>
+            <label class="chip"><input type="checkbox" data-tag="retrieval" checked />Retrieval (RAG)</label>
+            <label class="chip"><input type="checkbox" data-tag="tools" checked />Tools / Actions</label>
+            <label class="chip"><input type="checkbox" data-tag="data" checked />Data Stores</label>
+            <label class="chip"><input type="checkbox" data-tag="governance" checked />Governance</label>
+            <label class="chip"><input type="checkbox" data-tag="obs" checked />Observability</label>
+            <label class="chip"><input type="checkbox" data-tag="ds" checked />DS Project Depth</label>
+          </div>
+
+          <div class="btnrow">
+            <button id="allOn">All on</button>
+            <button id="allOff">All off</button>
+            <button id="focusRAG">Focus: RAG + Agents</button>
+            <button id="focusDS">Focus: DS Pipeline</button>
+            <button id="focusGov">Focus: Governance</button>
+          </div>
+
+          <div class="kpi">
+            <div class="box">
+              <div class="label">Design intent</div>
+              <div class="value">
+                Keep “who does what” crisp:
+                <span class="pill ok">SoC</span>
+                <span class="pill warn">Fallback</span>
+                <span class="pill ok">Audit</span>
+              </div>
+            </div>
+            <div class="box">
+              <div class="label">Key pattern</div>
+              <div class="value">
+                <code>Plan → Retrieve → Ground → Verify → Route → Act → Log</code>
+              </div>
+            </div>
+          </div>
+
+          <hr style="border:0;border-top:1px solid var(--border);margin:14px 0;" />
+
+          <div class="note">
+            <b>GitHub Pages hosting:</b><br/>
+            1) Save this file as <code>index.html</code> in a repo.<br/>
+            2) Repo Settings → Pages → “Deploy from branch” → select <code>main</code> + <code>/root</code>.<br/>
+            3) Visit the Pages URL. No backend required.
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT: Diagrams -->
+      <div class="card">
+        <h2>Diagrams</h2>
+
+        <div class="tabs">
+          <div class="tab active" data-tab="arch">Architecture (SoC)</div>
+          <div class="tab" data-tab="agent">Agent Graph</div>
+          <div class="tab" data-tab="ds">Data Science Project Depth</div>
+        </div>
+
+        <div class="panel" id="panel-arch">
+          <div class="diagram">
+            <div class="mermaid" id="m-arch"></div>
+          </div>
+          <div class="small">
+            Architecture emphasizes separation of concerns: UI/API (request surface), orchestrator (control plane), agents (intent & reasoning),
+            retrieval/tools (data plane), plus governance + observability (safety rails).
+          </div>
+        </div>
+
+        <div class="panel hidden" id="panel-agent">
+          <div class="diagram">
+            <div class="mermaid" id="m-agent"></div>
+          </div>
+          <div class="small">
+            Agent graph is a state machine: planner routes to specialized agents; validators gate decisions; fallback loops prevent hallucination.
+          </div>
+        </div>
+
+        <div class="panel hidden" id="panel-ds">
+          <div class="diagram">
+            <div class="mermaid" id="m-ds"></div>
+          </div>
+          <div class="small">
+            DS depth adds specialized agents for EDA, feature engineering, modeling, evaluation, and deployment packaging — each can be tool-using and RAG-grounded.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    <b>How to use this for designing agents:</b>
+    Start by naming your “verbs” (Plan, Retrieve, Verify, Decide, Act). Then create one agent per verb-class.
+    If you notice a single agent doing too many verbs, split it (separation of concerns).
+    Your system becomes resilient when verification + fallback are first-class citizens, not afterthoughts.
+  </footer>
+
+  <script>
+    // Mermaid init
+    mermaid.initialize({
+      startOnLoad: false,
+      theme: "dark",
+      securityLevel: "loose",
+      flowchart: { curve: "basis" }
+    });
+
+    // ====== Templates (tag-based rendering) ======
+    // We rebuild Mermaid text depending on filters. Tags map to chunks of the diagram.
+    const blocks = {
+      arch: {
+        api: `
+subgraph API["API / UI Layer (Request Surface)"]
+  UI[Web UI / Chat UI]
+  API1[FastAPI / Gateway]
+  UI --> API1
+end
+`,
+        orchestrator: `
+subgraph ORCH["Orchestrator (Control Plane)"]
+  ROUTER[Router / Policy]
+  STATE[State Store]
+  ROUTER <--> STATE
+end
+`,
+        agents: `
+subgraph AG["Agents (Intent + Reasoning)"]
+  PLAN[Planner Agent]
+  SPEC[Specialized Agents\n(Policy, DS, Ops, Risk)]
+  VALID[Validator / Critic]
+  PLAN --> SPEC
+  SPEC --> VALID
+end
+`,
+        retrieval: `
+subgraph RAG["Retrieval (RAG Data Plane)"]
+  EMB[Embed Query]
+  VEC[Vector Search]
+  CHUNK[Top-K Chunks]
+  AUG[Prompt Augmentation]
+  EMB --> VEC --> CHUNK --> AUG
+end
+`,
+        tools: `
+subgraph TOOLS["Tools / Actions (Execution)"]
+  DBT[DB Tool\n(SQL/NoSQL/Warehouse)]
+  FILE[Doc Tool\n(PDF/DOC/HTML)]
+  WEB[Web Search Tool]
+  ACT[Action Tool\n(API calls / tickets / emails)]
+end
+`,
+        data: `
+subgraph DATA["Data Stores"]
+  VDB[(Vector DB)]
+  POL[(Policy Docs)]
+  DWH[(Warehouse / Lake)]
+  LOGS[(Logs / Traces)]
+end
+`,
+        governance: `
+subgraph GOV["Governance (Safety Rails)"]
+  AUTH[AuthN/AuthZ]
+  PII[PII / Secrets Filter]
+  INJ[Prompt Injection Guard]
+  PROV[Provenance / Citation Policy]
+end
+`,
+        obs: `
+subgraph OBS["Observability"]
+  MET[Metrics]
+  TRC[Traces]
+  EVAL[Offline Eval / Regression Tests]
+end
+`,
+        ds: `
+subgraph DSX["DS Project Workflows (as a workload)"]
+  DSREQ[Project Brief / Hypothesis]
+  DSPIP[EDA → Features → Model → Eval]
+  DSPKG[Packaging\n(Batch/Realtime)]
+end
+`
+      },
+
+      agent: {
+        agents: `
+stateDiagram-v2
+  [*] --> Plan: goal
+  Plan --> Retrieve: step / query
+  Retrieve --> Ground: chunks
+  Ground --> Reason: augmented prompt
+  Reason --> Validate: draft answer
+  Validate --> Decide: OK
+  Validate --> Fallback: insufficient / conflict
+  Fallback --> Retrieve: retry / tier-switch
+  Decide --> Act: tool call / report
+  Act --> Log: telemetry
+  Log --> [*]
+`,
+        retrieval: `
+%% (agent diagram is state-based; retrieval is represented by Retrieve/Ground)
+`,
+        governance: `
+%% Governance gates are implicit in Validate/Fallback/Act
+`,
+        obs: `
+%% Observability is represented by Log
+`,
+        tools: `
+%% Action is represented by Act
+`,
+        api: `
+%% UI/API triggers goal into [*] -> Plan
+`,
+        data: `
+%% Data stores are upstream/downstream of Retrieve/Act
+`,
+        orchestrator: `
+%% Orchestrator is the runtime executing the state machine
+`,
+        ds: `
+%% DS is a workload plugged into Plan steps (feature agent, model agent, etc.)
+`
+      },
+
+      ds: {
+        ds: `
+flowchart TB
+  subgraph DS["Data Science Project Depth (Agentized)"]
+    BRIEF[Project Brief Agent\n(scope, KPI, constraints)]
+    DATAAUD[Data QA Agent\n(nulls, drift, leakage checks)]
+    EDA[EDA Agent\nprofiles, segments, anomalies]
+    FEAT[Feature Agent\ntransforms, selection, leakage guard]
+    TRAIN[Training Agent\nCV, tuning, baselines]
+    EVAL[Evaluation Agent\nmetrics, stability, fairness]
+    PKG[Packaging Agent\nbatch/realtime, schema contracts]
+    DEP[Deployment Agent\nCI/CD, infra, rollout]
+    MON[Monitoring Agent\ndrift, quality, alarms]
+    BRIEF --> DATAAUD --> EDA --> FEAT --> TRAIN --> EVAL --> PKG --> DEP --> MON
+  end
+
+  subgraph RAGX["RAG Grounding (Reusable)"]
+    RET[Retriever]
+    KB[(Domain KB / Policy / Docs)]
+    RET <--> KB
+  end
+
+  subgraph TOOLX["Tools (Reusable)"]
+    SQL[SQL Tool]
+    PY[Python Tool]
+    FS[File Tool]
+    VIZ[Viz Tool]
+  end
+
+  BRIEF --> RET
+  DATAAUD --> SQL
+  EDA --> PY
+  FEAT --> PY
+  TRAIN --> PY
+  EVAL --> VIZ
+  PKG --> FS
+  DEP --> FS
+  MON --> SQL
+`,
+        agents: `
+%% (DS diagram is already agent-centric)
+`,
+        retrieval: `
+%% RAGX shows retrieval grounding used by multiple DS agents
+`,
+        tools: `
+%% TOOLX shows standard tools called by DS agents
+`,
+        governance: `
+flowchart LR
+  subgraph GOV["Governance Overlay (applies to ALL agents)"]
+    SCHEMA[Schema contracts\n(Pydantic / JSON schema)]
+    PII[PII masking]
+    AUDIT[Audit logs]
+  end
+`,
+        obs: `
+%% Monitoring Agent + audit logs capture observability
+`,
+        api: `
+%% Project kickoff is the input surface; could be UI or ticket
+`,
+        data: `
+%% KB + SQL storage represent data plane
+`,
+        orchestrator: `
+%% Orchestrator schedules and runs DS agents (LangGraph/Airflow/etc.)
+`
+      }
+    };
+
+    const mermaidHeaders = {
+      arch: `flowchart LR
+%% === Agentic RAG Platform: Separation of Concerns ===
+`,
+      agent: `%% === Agent Graph (State Machine) ===
+`,
+      ds: `%% === DS Project Depth (Agentized) ===
+`
+    };
+
+    // Render helpers
+    function getEnabledTags(){
+      const checked = [...document.querySelectorAll('#filters input[type="checkbox"]')]
+        .filter(x => x.checked)
+        .map(x => x.dataset.tag);
+      return new Set(checked);
+    }
+
+    function buildMermaid(kind){
+      const enabled = getEnabledTags();
+      let s = mermaidHeaders[kind];
+
+      // For architecture: also add wiring between blocks if relevant
+      if(kind === "arch"){
+        // Add blocks in a consistent order
+        const order = ["api","orchestrator","agents","retrieval","tools","data","governance","obs","ds"];
+        for(const t of order){
+          if(enabled.has(t)) s += blocks.arch[t];
+        }
+
+        // Cross-links (only if endpoints exist)
+        s += `
+%% Cross-links (only show if both ends enabled)
+`;
+        const has = (t)=>enabled.has(t);
+
+        if(has("api") && has("orchestrator")) s += `API1 --> ROUTER\n`;
+        if(has("orchestrator") && has("agents")) s += `ROUTER --> PLAN\nVALID --> ROUTER\n`;
+        if(has("agents") && has("retrieval")) s += `SPEC --> EMB\nAUG --> SPEC\n`;
+        if(has("retrieval") && has("data")) s += `VEC <--> VDB\nCHUNK --> POL\n`;
+        if(has("tools") && has("agents")) s += `SPEC --> DBT\nSPEC --> FILE\nSPEC --> WEB\nVALID --> ACT\n`;
+        if(has("tools") && has("data")) s += `DBT <--> DWH\nFILE <--> POL\nWEB --> POL\nACT --> DWH\n`;
+        if(has("obs") && (has("api")||has("orchestrator")||has("agents")||has("tools"))) {
+          s += `API1 --> MET\nROUTER --> TRC\nVALID --> TRC\nACT --> TRC\nTRC --> LOGS\n`;
+        }
+        if(has("governance") && (has("api")||has("agents")||has("tools"))) {
+          s += `API1 --> AUTH\nSPEC --> PII\nSPEC --> INJ\nVALID --> PROV\n`;
+        }
+        if(has("ds") && has("agents")) s += `PLAN --> DSREQ\nDSPIP --> SPEC\nDSPKG --> ACT\n`;
+      }
+
+      if(kind === "agent"){
+        // We render the state diagram if "agents" is enabled; otherwise show minimal note.
+        if(enabled.has("agents")){
+          s += blocks.agent.agents;
+        } else {
+          s += `flowchart TB\nA[Enable 'Agents' to view the Agent Graph]\n`;
+        }
+      }
+
+      if(kind === "ds"){
+        // DS diagram rendered if ds tag enabled; otherwise minimal note.
+        if(enabled.has("ds")){
+          s += blocks.ds.ds;
+          // Optional governance overlay if governance enabled
+          if(enabled.has("governance")) s += "\n" + blocks.ds.governance;
+        } else {
+          s += `flowchart TB\nA[Enable 'DS Project Depth' to view the DS pipeline]\n`;
+        }
+      }
+
+      return s;
+    }
+
+    async function render(kind, targetId){
+      const el = document.getElementById(targetId);
+      el.textContent = buildMermaid(kind);
+      try{
+        await mermaid.run({ nodes: [el] });
+      }catch(e){
+        el.textContent = "Mermaid render error: " + e.message;
+      }
+    }
+
+    // Initial render
+    (async function init(){
+      await render("arch","m-arch");
+      await render("agent","m-agent");
+      await render("ds","m-ds");
+    })();
+
+    // Tabs
+    const tabs = document.querySelectorAll(".tab");
+    tabs.forEach(t=>{
+      t.addEventListener("click", async ()=>{
+        tabs.forEach(x=>x.classList.remove("active"));
+        t.classList.add("active");
+
+        const tab = t.dataset.tab;
+        document.getElementById("panel-arch").classList.toggle("hidden", tab!=="arch");
+        document.getElementById("panel-agent").classList.toggle("hidden", tab!=="agent");
+        document.getElementById("panel-ds").classList.toggle("hidden", tab!=="ds");
+
+        // Re-render the selected panel (ensures correct layout sizing)
+        if(tab==="arch") await render("arch","m-arch");
+        if(tab==="agent") await render("agent","m-agent");
+        if(tab==="ds") await render("ds","m-ds");
+      });
+    });
+
+    // Filter changes -> rerender all
+    document.getElementById("filters").addEventListener("change", async ()=>{
+      await render("arch","m-arch");
+      await render("agent","m-agent");
+      await render("ds","m-ds");
+    });
+
+    // Buttons
+    function setAll(value){
+      document.querySelectorAll('#filters input[type="checkbox"]').forEach(cb=>cb.checked=value);
+    }
+    function setOnly(tags){
+      document.querySelectorAll('#filters input[type="checkbox"]').forEach(cb=>{
+        cb.checked = tags.includes(cb.dataset.tag);
+      });
+    }
+
+    document.getElementById("allOn").addEventListener("click", async ()=>{
+      setAll(true);
+      await render("arch","m-arch"); await render("agent","m-agent"); await render("ds","m-ds");
+    });
+
+    document.getElementById("allOff").addEventListener("click", async ()=>{
+      setAll(false);
+      await render("arch","m-arch"); await render("agent","m-agent"); await render("ds","m-ds");
+    });
+
+    document.getElementById("focusRAG").addEventListener("click", async ()=>{
+      setOnly(["api","orchestrator","agents","retrieval","tools","data","governance","obs"]);
+      // Keep DS off for this view
+      await render("arch","m-arch"); await render("agent","m-agent"); await render("ds","m-ds");
+    });
+
+    document.getElementById("focusDS").addEventListener("click", async ()=>{
+      setOnly(["ds","agents","retrieval","tools","data","governance","obs"]);
+      await render("arch","m-arch"); await render("agent","m-agent"); await render("ds","m-ds");
+    });
+
+    document.getElementById("focusGov").addEventListener("click", async ()=>{
+      setOnly(["governance","obs","api","orchestrator","agents","retrieval","tools","data"]);
+      await render("arch","m-arch"); await render("agent","m-agent"); await render("ds","m-ds");
+    });
+  </script>
+</body>
+</html>
