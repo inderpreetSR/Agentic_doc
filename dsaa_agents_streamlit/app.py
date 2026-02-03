@@ -1,277 +1,203 @@
 """
-Streamlit DSAA Agents Diagram Viewer
+DSAA Agents - Multi-Page Streamlit Application
 
-Interactive viewer for Agentic RAG + Data Science Project Stack diagrams.
-Uses HTML + Mermaid.js (CDN) for client-side rendering; no external image API.
+Main entry point and home page for the diagram viewer application.
 """
 
-import json
 import streamlit as st
-import streamlit.components.v1 as components
 
-from diagrams import (
-    PRESETS,
-    COMPLETE_DIAGRAM,
-    build_architecture_diagram,
-    build_agent_diagram,
-    build_ds_diagram,
-)
-
-# Page configuration
+# Page configuration - must be first Streamlit command
 st.set_page_config(
-    page_title="DSAA Agents Diagram Viewer",
+    page_title="DSAA Agents",
     page_icon="🤖",
     layout="wide",
     initial_sidebar_state="expanded",
 )
 
-# Custom CSS for dark theme enhancements
+# Import monitoring after page config
+from utils.monitoring import log_page_view, metrics
+
+# Log page view
+log_page_view("Home")
+
+# Custom CSS
 st.markdown("""
 <style>
-    .stTabs [data-baseweb="tab-list"] {
-        gap: 8px;
+    .main-header {
+        font-size: 3rem;
+        font-weight: 700;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin-bottom: 0.5rem;
     }
-    .stTabs [data-baseweb="tab"] {
-        padding: 8px 16px;
-        border-radius: 8px;
+    .sub-header {
+        font-size: 1.2rem;
+        color: #9fb0d0;
+        margin-bottom: 2rem;
     }
-    .stTabs [data-baseweb="tab-panel"] {
-        padding-top: 12px;
-    }
-    .info-card {
-        background: rgba(122, 162, 255, 0.1);
+    .feature-card {
+        background: rgba(122, 162, 255, 0.08);
         border: 1px solid rgba(255, 255, 255, 0.08);
         border-radius: 12px;
-        padding: 16px;
-        margin: 8px 0;
+        padding: 24px;
+        margin: 12px 0;
+        transition: transform 0.2s, box-shadow 0.2s;
     }
-    .info-card h4 {
-        margin: 0 0 8px 0;
-        color: var(--primary-color, #7aa2ff);
+    .feature-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 24px rgba(102, 126, 234, 0.15);
     }
-    .info-card p {
-        margin: 0;
-        color: var(--text-color, #9fb0d0);
-        opacity: 0.85;
+    .feature-card h3 {
+        color: #7aa2ff;
+        margin-bottom: 8px;
+    }
+    .feature-card p {
+        color: #9fb0d0;
         font-size: 14px;
     }
-    code {
-        background: rgba(122, 162, 255, 0.15);
-        padding: 2px 6px;
-        border-radius: 4px;
-        font-family: 'Courier New', monospace;
+    .stats-container {
+        display: flex;
+        gap: 24px;
+        margin: 24px 0;
     }
-    .tab-description {
-        background: rgba(122, 162, 255, 0.08);
-        border-left: 3px solid var(--primary-color, #7aa2ff);
-        padding: 12px 16px;
-        margin-bottom: 16px;
-        border-radius: 4px;
+    .stat-card {
+        background: rgba(102, 126, 234, 0.1);
+        border-radius: 8px;
+        padding: 16px 24px;
+        text-align: center;
     }
-    .tab-description strong {
-        color: var(--primary-color, #7aa2ff);
+    .stat-number {
+        font-size: 2rem;
+        font-weight: 700;
+        color: #667eea;
+    }
+    .stat-label {
+        font-size: 0.9rem;
+        color: #9fb0d0;
     }
 </style>
 """, unsafe_allow_html=True)
 
 
-def render_mermaid_html(mermaid_code: str, height_px: int = 500) -> str:
-    """Build HTML that loads Mermaid.js from CDN and renders the diagram in the browser."""
-    # Escape diagram for safe injection into JS string (handles newlines, quotes, backslashes)
-    code_escaped = json.dumps(mermaid_code)
-    return f"""
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
-  <style>
-    body {{ margin: 0; padding: 12px; background: transparent; }}
-    .mermaid {{ display: flex; justify-content: center; }}
-    .mermaid svg {{ max-width: 100%; }}
-  </style>
-</head>
-<body>
-  <div class="mermaid" id="mermaid-root"></div>
-  <script>
-    mermaid.initialize({{ startOnLoad: false, theme: 'dark', securityLevel: 'loose' }});
-    const code = {code_escaped};
-    const container = document.getElementById('mermaid-root');
-    mermaid.render('mermaid-svg', code).then(function({{ svg }}) {{
-      container.innerHTML = svg;
-    }}).catch(function(err) {{
-      container.innerHTML = '<pre style="color:#e06c75;">' + err.message + '</pre>';
-    }});
-  </script>
-</body>
-</html>
-"""
-
-
-def init_session_state():
-    """Initialize session state with default filter values."""
-    if "filters" not in st.session_state:
-        st.session_state.filters = PRESETS["all_on"].copy()
-
-
-def apply_preset(preset_name: str):
-    """Apply a preset filter configuration."""
-    st.session_state.filters = PRESETS[preset_name].copy()
-
-
 def main():
-    """Main application entry point."""
-    init_session_state()
+    """Main home page."""
 
     # Header
-    st.title("Agentic RAG + Data Science Project Stack")
+    st.markdown('<h1 class="main-header">DSAA Agents</h1>', unsafe_allow_html=True)
     st.markdown(
-        "**Design and visualize** agent-based systems with clear separation of concerns. "
-        "Use filters to explore how orchestrators, specialized agents, and data pipelines "
-        "work together with governance and observability layers."
+        '<p class="sub-header">Interactive diagram viewer for Agentic RAG + Data Science architectures</p>',
+        unsafe_allow_html=True
     )
 
-    # Sidebar controls
-    with st.sidebar:
-        active_count = sum(1 for v in st.session_state.filters.values() if v)
-        st.header(f"Diagram Filters ({active_count}/9)")
-        st.markdown(
-            "Use filters to emphasize specific system aspects (governance, DS lifecycle, or agent orchestration)."
-        )
+    # Quick stats
+    stats = metrics.get_metrics_summary()
+    col1, col2, col3, col4 = st.columns(4)
 
-        # Filter checkboxes
-        st.subheader("Component Visibility")
+    with col1:
+        st.metric("Diagram Types", "5+", help="Flowchart, Sequence, ER, Class, Gantt")
+    with col2:
+        st.metric("Templates", "15+", help="Pre-built diagram templates")
+    with col3:
+        st.metric("Export Formats", "2", help="PNG and SVG")
+    with col4:
+        st.metric("Total Views", stats.get("total_events", 0))
 
-        filter_labels = {
-            "api": "API / UI",
-            "orchestrator": "Orchestrator",
-            "agents": "Agents",
-            "retrieval": "Retrieval (RAG)",
-            "tools": "Tools / Actions",
-            "data": "Data Stores",
-            "governance": "Governance",
-            "obs": "Observability",
-            "ds": "DS Project Depth",
-        }
+    st.divider()
 
-        for key, label in filter_labels.items():
-            st.session_state.filters[key] = st.checkbox(
-                label,
-                value=st.session_state.filters.get(key, True),
-                key=f"filter_{key}",
-            )
+    # Feature cards
+    st.subheader("Features")
 
-        # Preset buttons
-        st.subheader("Quick Presets")
+    col1, col2 = st.columns(2)
 
-        st.markdown("**Full System:**")
-        col1, col2 = st.columns(2)
-        with col1:
-            if st.button("All Components", use_container_width=True, key="preset_all_on"):
-                apply_preset("all_on")
-                st.toast("All components enabled", icon="✅")
-                st.rerun()
-        with col2:
-            if st.button("Clear All", use_container_width=True, key="preset_all_off"):
-                apply_preset("all_off")
-                st.toast("All components disabled", icon="🔄")
-                st.rerun()
-
-        st.markdown("**Focus Views:**")
-        col3, col4 = st.columns(2)
-        with col3:
-            if st.button("RAG + Agents", use_container_width=True, key="preset_rag"):
-                apply_preset("rag_agents")
-                st.toast("RAG+Agents focus applied", icon="🎯")
-                st.rerun()
-            if st.button("Governance", use_container_width=True, key="preset_gov"):
-                apply_preset("governance")
-                st.toast("Governance focus applied", icon="🛡️")
-                st.rerun()
-        with col4:
-            if st.button("DS Pipeline", use_container_width=True, key="preset_ds"):
-                apply_preset("ds_pipeline")
-                st.toast("DS Pipeline focus applied", icon="📊")
-                st.rerun()
-
-        # Info cards - clearly separated
-        st.divider()
-        st.header("Design Principles")
-
+    with col1:
         st.markdown("""
-<div class="info-card">
-    <h4>Design Intent</h4>
-    <p>Keep "who does what" crisp: Separation of Concerns, Fallback handling, Audit trails</p>
-</div>
-""", unsafe_allow_html=True)
-
-        st.markdown("""
-<div class="info-card">
-    <h4>Key Pattern</h4>
-    <p><code>Plan → Retrieve → Ground → Verify → Route → Act → Log</code></p>
-</div>
-""", unsafe_allow_html=True)
-
-    # Main content area with tabs
-    tab1, tab2, tab3, tab4 = st.tabs([
-        "Architecture (SoC)",
-        "Agent Graph",
-        "DS Project Depth",
-        "Complete View"
-    ])
-
-    with tab1:
-        st.markdown("""
-        <div class="tab-description">
-            <strong>Architecture View:</strong> Emphasizes separation of concerns — UI/API (request surface),
-            orchestrator (control plane), agents (intent & reasoning), retrieval/tools
-            (data plane), plus governance + observability (safety rails).
+        <div class="feature-card">
+            <h3>📊 Diagram Viewer</h3>
+            <p>Interactive viewer for Agentic RAG architecture diagrams with customizable filters and presets.
+            Visualize separation of concerns, agent graphs, and data science pipelines.</p>
         </div>
         """, unsafe_allow_html=True)
-        with st.spinner("Rendering architecture diagram..."):
-            arch_diagram = build_architecture_diagram(st.session_state.filters)
-            components.html(render_mermaid_html(arch_diagram, 680), height=700, scrolling=True)
 
-    with tab2:
         st.markdown("""
-        <div class="tab-description">
-            <strong>Agent Graph:</strong> State machine showing how planner routes to specialized agents;
-            validators gate decisions; fallback loops prevent hallucination.
+        <div class="feature-card">
+            <h3>✏️ Diagram Editor</h3>
+            <p>Live Mermaid code editor with instant preview. Create custom diagrams with syntax highlighting
+            and real-time rendering.</p>
         </div>
         """, unsafe_allow_html=True)
-        with st.spinner("Rendering agent graph..."):
-            agent_diagram = build_agent_diagram(st.session_state.filters)
-            components.html(render_mermaid_html(agent_diagram, 570), height=600, scrolling=True)
 
-    with tab3:
         st.markdown("""
-        <div class="tab-description">
-            <strong>DS Project Depth:</strong> Specialized agents for EDA, feature engineering, modeling,
-            evaluation, and deployment — each can be tool-using and RAG-grounded.
+        <div class="feature-card">
+            <h3>💾 Custom Diagrams</h3>
+            <p>Save, manage, and share your custom diagrams. Built-in database for persistence with
+            public/private visibility options.</p>
         </div>
         """, unsafe_allow_html=True)
-        with st.spinner("Rendering DS pipeline diagram..."):
-            ds_diagram = build_ds_diagram(st.session_state.filters)
-            components.html(render_mermaid_html(ds_diagram, 770), height=800, scrolling=True)
 
-    with tab4:
+    with col2:
         st.markdown("""
-        <div class="tab-description">
-            <strong>Complete View:</strong> Static view showing all components and cross-links from the v2 design.
+        <div class="feature-card">
+            <h3>📥 Export Options</h3>
+            <p>Download diagrams as PNG or SVG for use in documentation, presentations, or other applications.
+            High-quality exports with dark theme support.</p>
         </div>
         """, unsafe_allow_html=True)
-        with st.spinner("Rendering complete diagram..."):
-            components.html(render_mermaid_html(COMPLETE_DIAGRAM, 770), height=800, scrolling=True)
+
+        st.markdown("""
+        <div class="feature-card">
+            <h3>📚 Template Library</h3>
+            <p>Browse pre-built templates for sequence diagrams, ER diagrams, class diagrams, Gantt charts,
+            and more. One-click to use any template.</p>
+        </div>
+        """, unsafe_allow_html=True)
+
+        st.markdown("""
+        <div class="feature-card">
+            <h3>🔌 REST API</h3>
+            <p>Programmatic access to diagram generation via REST API. Integrate with CI/CD pipelines,
+            documentation generators, or custom tools.</p>
+        </div>
+        """, unsafe_allow_html=True)
+
+    st.divider()
+
+    # Quick Start
+    st.subheader("Quick Start")
+
+    st.markdown("""
+    1. **Diagram Viewer** → Explore pre-built architecture diagrams with interactive filters
+    2. **Diagram Editor** → Create custom diagrams with live preview
+    3. **Custom Diagrams** → Save and manage your diagram collection
+    4. **API Docs** → Integrate diagram generation into your workflow
+    """)
+
+    # Navigation buttons
+    col1, col2, col3, col4 = st.columns(4)
+
+    with col1:
+        if st.button("📊 Open Viewer", use_container_width=True):
+            st.switch_page("pages/1_Diagram_Viewer.py")
+
+    with col2:
+        if st.button("✏️ Open Editor", use_container_width=True):
+            st.switch_page("pages/2_Diagram_Editor.py")
+
+    with col3:
+        if st.button("💾 My Diagrams", use_container_width=True):
+            st.switch_page("pages/3_Custom_Diagrams.py")
+
+    with col4:
+        if st.button("🔌 API Docs", use_container_width=True):
+            st.switch_page("pages/4_API_Docs.py")
 
     # Footer
     st.divider()
-    st.markdown(
-        "**How to use this for designing agents:** Start by naming your 'verbs' "
-        "(Plan, Retrieve, Verify, Decide, Act). Then create one agent per verb-class. "
-        "If you notice a single agent doing too many verbs, split it (separation of concerns). "
-        "Your system becomes resilient when verification + fallback are first-class citizens, "
-        "not afterthoughts."
-    )
+    st.markdown("""
+    <div style="text-align: center; color: #666; font-size: 0.9rem;">
+        Built with Streamlit | <a href="https://github.com/inderpreetSR/Agentic_doc" target="_blank">GitHub</a>
+    </div>
+    """, unsafe_allow_html=True)
 
 
 if __name__ == "__main__":
