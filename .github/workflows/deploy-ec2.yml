@@ -1,0 +1,47 @@
+name: Deploy to EC2
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:  # Manual trigger
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy to EC2
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            cd /home/ubuntu/Agentic_doc
+
+            # Pull latest changes
+            git fetch origin main
+            git reset --hard origin/main
+
+            # Activate virtual environment and update dependencies
+            source venv/bin/activate
+            pip install -r dsaa_agents_streamlit/requirements.txt
+
+            # Restart service
+            sudo systemctl restart dsaa-agents
+
+            # Wait and check health
+            sleep 5
+            sudo systemctl is-active dsaa-agents
+
+      - name: Deployment Status
+        if: always()
+        run: |
+          if [ "${{ job.status }}" == "success" ]; then
+            echo "✅ Deployment successful!"
+          else
+            echo "❌ Deployment failed!"
+          fi
