@@ -138,9 +138,9 @@ def main():
     with col2:
         st.markdown("""
         <div class="feature-card">
-            <h3>📥 Export Options</h3>
-            <p>Download diagrams as PNG or SVG for use in documentation, presentations, or other applications.
-            High-quality exports with dark theme support.</p>
+            <h3>🕸️ Interactive Graph</h3>
+            <p>Drag, zoom, and explore architecture with physics-based layout. Nodes auto-arrange,
+            hover for tooltips, and reposition freely.</p>
         </div>
         """, unsafe_allow_html=True)
 
@@ -173,22 +173,26 @@ def main():
     """)
 
     # Navigation buttons
-    col1, col2, col3, col4 = st.columns(4)
+    col1, col2, col3, col4, col5 = st.columns(5)
 
     with col1:
-        if st.button("📊 Open Viewer", use_container_width=True):
+        if st.button("📊 Viewer", use_container_width=True):
             st.switch_page("pages/1_Diagram_Viewer.py")
 
     with col2:
-        if st.button("✏️ Open Editor", use_container_width=True):
-            st.switch_page("pages/2_Diagram_Editor.py")
+        if st.button("🕸️ Interactive", use_container_width=True):
+            st.switch_page("pages/5_Interactive_Graph.py")
 
     with col3:
-        if st.button("💾 My Diagrams", use_container_width=True):
-            st.switch_page("pages/3_Custom_Diagrams.py")
+        if st.button("✏️ Editor", use_container_width=True):
+            st.switch_page("pages/2_Diagram_Editor.py")
 
     with col4:
-        if st.button("🔌 API Docs", use_container_width=True):
+        if st.button("💾 Library", use_container_width=True):
+            st.switch_page("pages/3_Custom_Diagrams.py")
+
+    with col5:
+        if st.button("🔌 API", use_container_width=True):
             st.switch_page("pages/4_API_Docs.py")
 
     # Footer
