@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   dsaa-agents:
     build:
@@ -16,21 +14,16 @@ services:
       - STREAMLIT_SERVER_ADDRESS=0.0.0.0
 
     # Resource limits (CRITICAL SECURITY FIX)
-    deploy:
-      resources:
-        limits:
-          cpus: '2.0'
-          memory: 2G
-        reservations:
-          cpus: '0.5'
-          memory: 512M
+    mem_limit: 2g
+    memswap_limit: 2g
+    cpus: 2.0
+    pids_limit: 100
 
     # Security options (HIGH PRIORITY FIX)
     security_opt:
       - no-new-privileges:true
     cap_drop:
       - ALL
-    pids_limit: 100
 
     # Read-only filesystem with necessary tmpfs
     read_only: true
@@ -58,6 +51,7 @@ services:
 
     networks:
       - backend
+      - frontend  # Allow direct access for development
 
   # Nginx reverse proxy for production
   nginx:
@@ -71,14 +65,9 @@ services:
       - ./ssl:/etc/nginx/ssl:ro
 
     # Resource limits
-    deploy:
-      resources:
-        limits:
-          cpus: '0.5'
-          memory: 256M
-        reservations:
-          cpus: '0.1'
-          memory: 64M
+    mem_limit: 256m
+    cpus: 0.5
+    pids_limit: 50
 
     # Security options
     security_opt:
@@ -90,7 +79,6 @@ services:
       - CHOWN
       - SETGID
       - SETUID
-    pids_limit: 50
 
     # Read-only with tmpfs
     read_only: true
