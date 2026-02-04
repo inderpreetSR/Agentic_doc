@@ -5,13 +5,50 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: dsaa-agents
+    container_name: dsaa-agents-app
     ports:
       - "8501:8501"
     restart: unless-stopped
+
+    # Environment (use env_file for secrets in production)
     environment:
       - STREAMLIT_SERVER_PORT=8501
       - STREAMLIT_SERVER_ADDRESS=0.0.0.0
+
+    # Resource limits (CRITICAL SECURITY FIX)
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+
+    # Security options (HIGH PRIORITY FIX)
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    pids_limit: 100
+
+    # Read-only filesystem with necessary tmpfs
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /home/streamlit/.streamlit
+    volumes:
+      - app-data:/app/dsaa_agents_streamlit/data
+      - app-logs:/app/dsaa_agents_streamlit/logs
+
+    # Logging limits
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+    # Health check
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8501/_stcore/health"]
       interval: 30s
@@ -19,18 +56,77 @@ services:
       retries: 3
       start_period: 10s
 
-  # Optional: Nginx reverse proxy for production
+    networks:
+      - backend
+
+  # Nginx reverse proxy for production
   nginx:
-    image: nginx:alpine
-    container_name: dsaa-nginx
+    image: nginx:1.25.4-alpine
+    container_name: dsaa-agents-proxy
     ports:
       - "80:80"
       - "443:443"
     volumes:
       - ./nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./ssl:/etc/nginx/ssl:ro  # Mount SSL certs if using HTTPS
+      - ./ssl:/etc/nginx/ssl:ro
+
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+        reservations:
+          cpus: '0.1'
+          memory: 64M
+
+    # Security options
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
+      - CHOWN
+      - SETGID
+      - SETUID
+    pids_limit: 50
+
+    # Read-only with tmpfs
+    read_only: true
+    tmpfs:
+      - /var/cache/nginx
+      - /var/run
+      - /tmp
+
+    # Logging limits
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
     depends_on:
-      - dsaa-agents
+      dsaa-agents:
+        condition: service_healthy
     restart: unless-stopped
+
+    networks:
+      - backend
+      - frontend
+
     profiles:
-      - production  # Only start with: docker-compose --profile production up
+      - production
+
+# Named volumes for persistence
+volumes:
+  app-data:
+  app-logs:
+
+# Network segmentation
+networks:
+  frontend:
+    driver: bridge
+  backend:
+    driver: bridge
+    internal: true  # No external access - only nginx can reach dsaa-agents

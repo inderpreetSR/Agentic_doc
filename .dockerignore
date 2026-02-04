@@ -1,0 +1,58 @@
+# Version control
+.git
+.gitignore
+.github
+
+# Python
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+*.egg
+*.egg-info
+dist
+build
+.pytest_cache
+.mypy_cache
+.ruff_cache
+venv
+.venv
+
+# IDE & Editor
+.vscode
+.idea
+.claude
+.cursor
+*.swp
+*.swo
+*~
+
+# Documentation & Non-runtime
+*.md
+docs/
+scripts/
+Error/
+DSAA_agents.html
+dsaa_agents_v2.html
+
+# Docker (don't include docker files in build context)
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# Environment & Secrets
+.env
+.env.*
+*.log
+secrets/
+
+# OS
+.DS_Store
+Thumbs.db
+nul
+
+# Data & Logs (will be mounted as volumes)
+dsaa_agents_streamlit/data/
+dsaa_agents_streamlit/logs/
